@@ -44,5 +44,6 @@ ER_NOW_119/
 ├── docs/             # 문서 및 보고서
 └── README.md
 ```
-## 🖼️ 화면 예시
-![ER-NOW 119 UI](ui.png)
+## 🖼️ 화면 
+<img width="1882" height="946" alt="ui" src="https://github.com/user-attachments/assets/2314f430-132d-47da-851e-a8f974c8743b" />
+
