@@ -1,0 +1,28 @@
+# --- Core server ---
+Flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.1
+requests>=2.31.0
+
+# --- Graph / State ---
+langgraph==0.2.27
+pydantic>=2.6,<3
+
+# --- Embedding & Retrieval ---
+sentence-transformers==3.0.1
+torch>=2.2.0
+#faiss-cpu==1.8.0.post1
+rank-bm25==0.2.2
+numpy>=1.26
+tokenizers==0.19.1
+PyMuPDF==1.24.9
+tqdm>=4.66.1
+faiss
+# --- Optional: you can uncomment if needed ---
+# langchain==0.2.14
+# langchain-community==0.2.12
+# openai>=1.40.0            # MODEL_PROVIDER=openai 쓸 때
+# google-generativeai>=0.7.0  # Gemini 클라이언트 쓸 때
+beautifulsoup4>=4.12.3
+lxml>=5.2.0
+tqdm>=4.66.1

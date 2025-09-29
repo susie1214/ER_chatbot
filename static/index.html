@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ER-NOW 119</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="hdr glass">
+  <div class="brand">
+    <svg class="ico hosp" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      <path d="M3 21V7a2 2 0 0 1 2-2h4V3h6v2h4a2 2 0 0 1 2 2v14h-4v-4H7v4H3zM9 9v2h2v2h2v-2h2V9h-2V7h-2v2H9z" fill="currentColor"/>
+    </svg>
+    <span class="brand-text">ER-NOW 119</span>
+  </div>
+  <div class="right">
+    <button class="btn outline" id="btnPB" onclick="togglePB()">📚 플레이북</button>
+    <button class="btn danger" onclick="tel119()">🚑 119</button>
+    <select id="lang" class="btn outline">
+      <option value="ko">KOR</option><option value="en">ENG</option>
+      <option value="zh">中文</option><option value="ja">日本語</option>
+    </select>
+    <label class="switch">
+      <input id="ttsAuto" type="checkbox" checked/> 🔈읽어주기
+    </label>
+    <button id="btnSTT" class="btn outline" onclick="toggleSTT()">🎙️ 말하기</button>
+  </div>
+</header>
+
+<!-- 좌측 접이식 플레이북 패널 -->
+<aside id="playbook" class="pb glass" hidden>
+  <div class="pb-head">
+    <b>상황별 대처</b>
+    <button class="btn xs" onclick="togglePB()">닫기</button>
+  </div>
+  <input id="pbq" class="pb-search" placeholder="검색 (예: 기도폐쇄, 화상, 경련)" oninput="filterCards(this.value)"/>
+  <div id="pb-list" class="pb-list"></div>
+  <div id="pb-view" class="pb-view"></div>
+  <p class="pb-lic">ⓘ 출처·라이선스는 각 카드에 표기됩니다.</p>
+</aside>
+
+<main class="wrap">
+  <!-- 채팅 컬럼 -->
+  <section class="col chat glass">
+    <div id="chat" class="panel"></div>
+    <div class="row">
+      <input id="q" class="input" placeholder="증상을 입력하거나 마이크로 말씀하세요 (예: 가슴 통증, 오른쪽 아랫배 통증 등)"/>
+      <button class="btn send" onclick="send()">전송</button>
+    </div>
+    <p class="notice">※ 본 서비스는 정보 제공용입니다. 즉시 위험 시 119를 누르세요.</p>
+  </section>
+
+  <!-- 사이드 컬럼 (오른쪽): 빠른 응급처치 요약 → 상단, 이미지 → 하단 -->
+  <aside class="col side">
+    <div class="card glass firstaid" aria-label="빠른 응급처치 요약">
+      <div class="card-head">
+        <svg class="ico ambu" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path d="M3 16V7a1 1 0 0 1 1-1h6l3 3h7a1 1 0 0 1 1 1v6h-1a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H3zM8 10h2V8H8v2zm-1 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm12 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
+        </svg>
+        <b>빠른 응급처치 요약</b>
+      </div>
+      <ul class="bul">
+        <li><b>발작</b>: 옆으로 눕히고 위험물 치우기, 입에 아무것도 넣지 않기, <b>5분↑ 즉시 119</b>.</li>
+        <li><b>심근경색 의심</b>: 119, 처방 니트로 있으면 지시에 따라 복용, 무호흡·무의식이면 <b>CPR</b>.</li>
+        <li><b>뇌졸중 FAST</b>: 얼굴·팔·말 어눌 → <b>즉시 119</b>.</li>
+        <li><b>기도 막힘(성인)</b>: 기침 유도 → 효과 없으면 <b>복부 밀어내기</b>, 의식 잃으면 CPR.</li>
+        <li><b>대량출혈</b>: <b>지압/압박</b> 지속, 가능한 높이 올리기, 지혈대는 교육받은 경우만.</li>
+        <li><b>아나필락시스</b>: 에피펜 즉시 사용, 증상 재발 가능 → 119/응급실.</li>
+        <li><b>화상</b>: 열원 제거, <b>미지근한 물 20분</b> 냉각, 물집은 터뜨리지 않기.</li>
+      </ul>
+    </div>
+
+    <div class="ai-art glass">
+      <img src="/img/erimage.png"   alt="doctor"   class="art art1"/>
+    </div>
+  </aside>
+</main>
+
+<!-- 플로팅 마이크 -->
+<button id="fabMic" class="fab" title="말하기 시작/종료" onclick="toggleSTT()">🎤</button>
+
+<script>
+const chat = document.getElementById('chat');
+const sid = localStorage.getItem('sid') || (localStorage.setItem('sid','sid-'+Math.random().toString(36).slice(2)), localStorage.getItem('sid'));
+let rec, recognizing=false;
+let typingBubble=null;
+
+// 유틸
+function addBubble(html, me=false){
+  const b=document.createElement('div');
+  b.className='bubble '+(me?'me':'bot');
+  b.innerHTML=html;
+  chat.appendChild(b); chat.scrollTop=chat.scrollHeight;
+  return b;
+}
+function showTyping(){
+  removeTyping();
+  const b=document.createElement('div');
+  b.className='bubble bot typing';
+  b.innerHTML='<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  typingBubble=b; chat.appendChild(b); chat.scrollTop=chat.scrollHeight;
+}
+function removeTyping(){ if(typingBubble){ typingBubble.remove(); typingBubble=null; } }
+
+// 119
+function tel119(){ location.href='tel:119'; }
+
+// 타이핑 효과
+function typeWriter(bubble, text, done){
+  const speed = 14; let i=0;
+  const timer=setInterval(()=>{
+    bubble.innerHTML += (text[i]==='\n')?'<br/>':(text[i]||'');
+    chat.scrollTop=chat.scrollHeight; i++;
+    if(i>=text.length){ clearInterval(timer); done&&done(); }
+  }, speed);
+}
+
+// 전송 (assist_prompt 옵션 지원)
+async function send(extra={}){
+  const input=document.getElementById('q');
+  const q=(extra.q ?? input.value).trim(); if(!q) return;
+  input.value='';
+
+  addBubble(q,true); showTyping();
+  const lang=document.getElementById('lang').value;
+
+  try{
+    const body = { q, lang, session_id:sid };
+    if(extra.assist_prompt){ body.assist_prompt = extra.assist_prompt; }
+
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)});
+    const j=await r.json();
+    removeTyping();
+
+    if(j.alerts?.length){ addBubble(`<b class="warn">[경고]</b> ${j.alerts.join(', ')}`); }
+
+    const b=addBubble('',false);
+    const text=(j.answer||'[응답 없음]').toString();
+    typeWriter(b,text,()=>{ if(document.getElementById('ttsAuto').checked){ speak(b.innerText); } });
+
+  }catch(e){
+    removeTyping(); addBubble('네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
+  }
+}
+
+// STT
+function toggleSTT(){
+  if(!('webkitSpeechRecognition' in window)){ alert('Chrome 권장(마이크 권한 필요)'); return; }
+  const btn=document.getElementById('btnSTT'); const fab=document.getElementById('fabMic');
+  if(!rec){
+    rec=new webkitSpeechRecognition(); rec.lang='ko-KR'; rec.interimResults=false; rec.continuous=false;
+    rec.onresult=e=>{ document.getElementById('q').value=e.results[0][0].transcript; send(); };
+    rec.onend=()=>{ recognizing=false; btn.innerText='🎙️ 말하기'; fab.classList.remove('on'); };
+  }
+  if(!recognizing){ recognizing=true; btn.innerText='⏹️ 종료'; fab.classList.add('on'); rec.start(); }
+  else{ recognizing=false; btn.innerText='🎙️ 말하기'; fab.classList.remove('on'); rec.stop(); }
+}
+
+// TTS
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  const u=new SpeechSynthesisUtterance(text);
+  const lang=document.getElementById('lang').value;
+  u.lang=(lang==='ko')?'ko-KR':(lang==='en')?'en-US':(lang==='zh')?'zh-CN':'ja-JP';
+  u.rate=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+// Enter 전송
+document.getElementById('q').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); send(); }
+});
+
+// ──────────────────────────────
+// 플레이북(상황별 대처) 로직
+// ──────────────────────────────
+let SCENARIOS = [];
+function togglePB(){
+  const el=document.getElementById('playbook');
+  if(el.hasAttribute('hidden')){ el.removeAttribute('hidden'); loadScenarios(); }
+  else{ el.setAttribute('hidden',''); }
+}
+async function loadScenarios(){
+  if(SCENARIOS.length) return; // 최초 1회만
+  const res = await fetch('/api/scenarios'); const j = await res.json();
+  SCENARIOS = j.cards || []; renderCards(SCENARIOS);
+}
+function renderCards(arr){
+  const box=document.getElementById('pb-list'); box.innerHTML="";
+  arr.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='pb-card';
+    btn.innerHTML = `<b>${c.title}</b><div class="mini">${(c.dept||[]).join('/')}</div>`;
+    btn.onclick = ()=> openCard(c.id);
+    box.appendChild(btn);
+  });
+}
+function filterCards(q){
+  q=(q||"").toLowerCase();
+  const f=SCENARIOS.filter(c => c.title?.toLowerCase().includes(q));
+  renderCards(f);
+}
+async function openCard(id){
+  const res = await fetch(`/api/scenario/${id}`); const j = await res.json();
+  if(!j.ok){ alert('카드를 불러오지 못했습니다.'); return; }
+  const c=j.card; const view=document.getElementById('pb-view');
+  view.innerHTML = `
+    <div class="pb-card view">
+      <div class="ttl">${c.title}</div>
+      <ol class="steps">${(c.steps||[]).slice(0,10).map(s=>`<li>${s}</li>`).join("")}</ol>
+      <div class="lic">출처: ${c.source||""} · ${c.license||""}</div>
+      <div class="row">
+        <button class="btn xs" onclick="speak('${(c.title+" "+(c.steps||[]).slice(0,6).join('. ')).replace(/'/g,'\\\'')}')">🔈 읽어주기</button>
+        <button class="btn xs primary" onclick="askWith('${encodeURIComponent(j.prompt)}')">이걸로 상담</button>
+      </div>
+    </div>`;
+}
+function askWith(promptEncoded){
+  const prompt = decodeURIComponent(promptEncoded);
+  const input=document.getElementById('q');
+  if(!input.value.trim()) input.value = "[상황 선택] "+(prompt.split('\n')[0]||'');
+  send({ q: input.value, assist_prompt: prompt });
+}
+</script>
+
+<!-- 플레이북 전용 최소 CSS (기존 styles.css에 영향 최소화) -->
+<style>
+  .pb { position: fixed; left: 12px; top: 78px; width: 320px; max-height: calc(100vh - 100px);
+        overflow: auto; border-radius: 14px; padding: 12px; z-index: 20; }
+  .pb-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .pb-search { width:100%; padding:10px 12px; border:2px solid #22c09a77; border-radius:12px; font-size:15px; }
+  .pb-list { margin-top:8px; }
+  .pb-card { display:block; width:100%; text-align:left; padding:10px 12px; margin:6px 0;
+             border:2px solid #22c09a; background:#e9fff7; border-radius:12px; font-weight:700; }
+  .pb-card.view { background:#fff; border-style:dashed }
+  .pb-card .mini { font-size:12px; color:#088178; font-weight:500; }
+  .pb-view .ttl { font-weight:900; margin:10px 2px; color:#045d56; }
+  .pb-view .steps { margin:6px 2px 8px 18px; }
+  .pb-view .lic { font-size:11px; color:#666; margin:6px 2px; }
+  .btn.xs { padding:6px 10px; font-size:12px; border-radius:10px; }
+  .btn.primary { background:#22c09a; color:#fff; border-color:#22c09a; }
+</style>
+</body>
+</html>

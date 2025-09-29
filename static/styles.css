@@ -1,0 +1,127 @@
+:root{
+  /* 테마 */
+  --emerald:#10b981;        /* 포인트(에메랄드) */
+  --emerald-d:#059669;      /* 진한 에메랄드 */
+  --cream:#fff7e6;          /* 크림 배경 */
+  --glass:rgba(16,185,129,0.08);
+  --border:#cde8dc;
+
+  /* 텍스트/버튼 대비 */
+  --text:#063a2b;           /* 진한 청록 (가독성) */
+  --muted:#3a7060;
+  --danger:#ff5e57;
+  --shadow:0 12px 36px #00000026;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Pretendard', system-ui, Segoe UI, Roboto, Apple SD Gothic Neo, sans-serif;
+  font-weight:700;                 /* 굵게(노인 친화) */
+  font-size:18px;                  /* 기본 크기↑ */
+  color:var(--text);
+  background:var(--cream);         /* 전체 크림 배경 */
+}
+
+/* Glass 카드 */
+.glass{
+  background:var(--glass);
+  border:1px solid var(--border);
+  backdrop-filter: blur(10px);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+}
+
+/* 상단 헤더 */
+.hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;margin:12px; gap:10px;
+}
+.brand{display:flex;gap:10px;align-items:center}
+.brand .ico{color:var(--emerald)}
+.brand-text{color:var(--emerald-d);font-size:24px;letter-spacing:.2px;font-weight:900}
+
+/* 버튼 */
+.btn{
+  background:var(--emerald);color:white;border:none;border-radius:12px;padding:12px 16px;
+  cursor:pointer; font-weight:800; font-size:18px; transition:.2s all;
+}
+.btn:hover{transform:translateY(-1px); box-shadow:0 8px 24px #10b98144}
+.btn.outline{background:transparent;color:var(--emerald-d);border:2px solid var(--emerald)}
+.btn.danger{background:var(--danger)}
+
+/* 레이아웃 */
+.wrap{
+  max-width:1280px;margin:0 auto;padding:0 16px 20px;
+  display:grid;grid-template-columns:2fr 1fr;gap:18px;
+}
+.panel{
+  height:540px;overflow:auto;border-radius:16px;padding:12px;
+  background:#ffffff; /* 채팅창 배경 라이트 */
+}
+
+/* 입력 */
+.row{display:flex;gap:10px;margin-top:10px}
+.input{
+  flex:1;border:2px solid var(--emerald);border-radius:12px;padding:14px 16px;
+  background:#fffdf6; color:#082d22; font-size:18px; font-weight:800;
+}
+.input::placeholder{color:#6b8f85; font-weight:600}
+.btn.send{min-width:96px}
+
+/* 안내 문구 */
+.notice{font-size:16px;color:#366b5b;margin-top:8px}
+
+/* 오른쪽 사이드 고정 상단 느낌 */
+.side{position:relative}
+.firstaid{position:sticky; top:0; z-index:2}
+
+/* 카드 */
+.card{padding:14px}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#0f5132}
+.bul{padding-left:20px;margin:8px 0 0 0}
+.bul li{margin:6px 0;color:#0b3d2b}
+
+/* 말풍선 (가독성↑, 에메랄드 계열) */
+.bubble{
+  max-width:80%;margin:10px 0;padding:14px;border:2px solid #a7f3d0;border-radius:16px;
+  background:#e8fff5; color:#063a2b; line-height:1.5; font-size:19px;
+}
+.me{margin-left:auto;text-align:right;background:#d1fae5;border-color:#86efac}
+.bot{background:#e8fff5}
+
+/* 경고 라벨 */
+.warn{color:#b91c1c}
+
+/* 타이핑 말풍선 */
+.typing{display:inline-flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#0ea5a6;display:inline-block;animation:bounce 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* 이미지 영역 */
+.ai-art{
+  margin-top:14px; padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:10px;
+}
+.ai-art .art{
+  width:100%; height:170px; object-fit:cover; border-radius:14px;
+  box-shadow:var(--shadow)
+}
+.ai-art .art1{ grid-column:1/3; height:190px }
+
+/* 플로팅 마이크 */
+.fab{
+  position:fixed;right:24px;bottom:24px;width:64px;height:64px;border-radius:50%;
+  background:radial-gradient(100% 100% at 70% 20%, #34e6b7, #10b981 60%, #059669);
+  color:white;border:none;box-shadow:0 16px 36px #05966955;cursor:pointer;font-size:26px;
+  display:flex;align-items:center;justify-content:center;transition:.2s all;font-weight:900
+}
+.fab:hover{transform:translateY(-2px)}
+.fab.on{box-shadow:0 0 0 5px #10b98133, 0 16px 36px #05966955}
+
+/* 스크롤바 */
+.panel::-webkit-scrollbar{width:12px}
+.panel::-webkit-scrollbar-thumb{background:#a7f3d0;border-radius:8px}
+.panel::-webkit-scrollbar-track{background:#ecfdf5;border-radius:8px}

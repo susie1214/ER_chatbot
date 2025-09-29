@@ -1,0 +1,37 @@
+# venv / cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# env / secrets
+.env
+*.env
+
+# editors / OS
+.DS_Store
+.vscode/
+.idea/
+*.code-workspace
+
+# build / artifacts / db / zip
+dist/
+build/
+*.egg-info/
+qdrant_db/
+*.zip
+*.tar
+*.gz
+
+# data (원하면 공개 X)
+data/*
+!data/README.md
+*.csv
+*.xlsx
+
+# logs
+logs/
+*.log

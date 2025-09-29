@@ -45,4 +45,3 @@ ER_NOW_119/
 └── README.md
 ```
 ## 🖼️ 화면 예시
-![ER-NOW 119 UI](ui.png)
