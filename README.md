@@ -32,16 +32,18 @@ ER_NOW_119는 응급 상황에서 **빠르고 정확한 대처 방법**을 안�
 ## 📂 프로젝트 구조
 ```bash
 ER_NOW_119/
-├── backend/          # Flask / FastAPI 서버
-│   ├── app.py
-│   ├── routes/
-│   └── models/
-├── frontend/         # 웹 프론트엔드
-│   ├── index.html
-│   ├── static/
-│   └── js/
-├── data/             # 병원/약품 데이터
-├── docs/             # 문서 및 보고서
-└── README.md
+├── app.py # FastAPI 진입점
+├── graph_app.py # LangGraph RAG 파이프라인 (대표 실행 파일)
+├── requirements.txt # 의존성 패키지
+├── README.md # 프로젝트 설명
+├── .gitignore # Git 무시 규칙
+├── .env.example # 환경 변수 예시 (API 키 미포함)
+│
+├── providers/ # LLM, Embedding, API Provider 모듈
+├── tools/ # 크롤링, OCR, 데이터 처리 유틸
+├── static/ # 정적 파일 (UI 등)
+├── data/ # (Git 무시) 질병/증상 데이터셋
+└── qdrant_db/ # (Git 무시) 벡터 DB 저장소
 ```
 ## 🖼️ 화면 예시
+<img width="379" height="138" alt="image" src="https://github.com/user-attachments/assets/8d38ff51-d134-47ef-9c5a-bd4b69387934" />
