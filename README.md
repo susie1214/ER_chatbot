@@ -47,3 +47,7 @@ ER_NOW_119/
 ```
 ## 🖼️ 화면 예시
 <img width="379" height="138" alt="image" src="https://github.com/user-attachments/assets/8d38ff51-d134-47ef-9c5a-bd4b69387934" />
+<img width="1323" height="647" alt="image" src="https://github.com/user-attachments/assets/e06a0aff-0b87-4ec5-be54-365f0adfbfb4" />
+<img width="1324" height="646" alt="image" src="https://github.com/user-attachments/assets/9409648b-37d9-4f72-b036-ee6f4d39dbcf" />
+
+
