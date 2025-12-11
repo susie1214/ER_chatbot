@@ -1,248 +1,993 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ER-NOW 119</title>
-  <link rel="stylesheet" href="styles.css"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@500;700;900&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ER-NOW 119 (응급처치 도우미)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #009688;
+      --bg: #f4f7f6;
+      --text: #333;
+      --text-light: #666;
+      --border: #ddd;
+      --accent: #e63946;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 헤더 */
+    .hdr {
+      background: white;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active {
+      background: #ffebee;
+      color: var(--primary);
+    }
+
+    .right-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-119 {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.4);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(230, 57, 70, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(230, 57, 70, 0);
+      }
+    }
+
+    /* 메인 레이아웃 */
+    .wrap {
+      flex: 1;
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 20px;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .col {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .side {
+      width: 320px;
+      flex-shrink: 0;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* 좌측 플레이북 */
+    .pb-panel {
+      background: #fff;
+    }
+
+    .pb-head {
+      padding: 20px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      color: var(--primary);
+    }
+
+    .pb-search {
+      margin: 10px 20px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .pb-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 20px;
+    }
+
+    .pb-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pb-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .pb-card b {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .pb-card .mini {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    /* 채팅 패널 */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #fafafa;
+    }
+
+    .input-area {
+      padding: 20px;
+      background: white;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-box {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .btn-send {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    .bubble.bot {
+      background: white;
+      border: 1px solid var(--border);
+      align-self: flex-start;
+      border-top-left-radius: 2px;
+    }
+
+    .bubble.me {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+      margin-left: auto;
+      border-top-right-radius: 2px;
+    }
+
+    .bubble b.warn {
+      color: var(--accent);
+    }
+
+    /* 우측 요약 패널 */
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--accent);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-head {
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .summary-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      list-style: none;
+    }
+
+    .summary-list li {
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    /* 오버레이 (PHR, 병원) */
+    .overlay {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(244, 247, 246, 0.98);
+      z-index: 100;
+      padding: 40px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .overlay.open {
+      display: block;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .ov-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      min-height: 80vh;
+    }
+
+    .ov-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ov-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .btn-close {
+      background: none;
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* PHR 스타일 */
+    .phr-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .phr-section {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .phr-label {
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: block;
+      color: #555;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .form-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+    }
+
+    .btn-del:hover {
+      color: var(--accent);
+    }
+
+    .hosp-item {
+      border: 1px solid #eee;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .hosp-item:hover {
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0, 150, 136, 0.1);
+    }
+
+    .hosp-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .hosp-addr {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* 플로팅 버튼 */
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      z-index: 200;
+    }
+
+    .fab:hover {
+      transform: scale(1.1);
+    }
+
+    .fab.recording {
+      background: var(--accent);
+      animation: pulse 1.5s infinite;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 400px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      z-index: 1;
+    }
+
+    .hosp-filter {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .warning-val {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
 </head>
+
 <body>
-<header class="hdr glass">
-  <div class="brand">
-    <svg class="ico hosp" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-      <path d="M3 21V7a2 2 0 0 1 2-2h4V3h6v2h4a2 2 0 0 1 2 2v14h-4v-4H7v4H3zM9 9v2h2v2h2v-2h2V9h-2V7h-2v2H9z" fill="currentColor"/>
-    </svg>
-    <span class="brand-text">ER-NOW 119</span>
-  </div>
-  <div class="right">
-    <button class="btn outline" id="btnPB" onclick="togglePB()">📚 플레이북</button>
-    <button class="btn danger" onclick="tel119()">🚑 119</button>
-    <select id="lang" class="btn outline">
-      <option value="ko">KOR</option><option value="en">ENG</option>
-      <option value="zh">中文</option><option value="ja">日本語</option>
-    </select>
-    <label class="switch">
-      <input id="ttsAuto" type="checkbox" checked/> 🔈읽어주기
-    </label>
-    <button id="btnSTT" class="btn outline" onclick="toggleSTT()">🎙️ 말하기</button>
-  </div>
-</header>
 
-<!-- 좌측 접이식 플레이북 패널 -->
-<aside id="playbook" class="pb glass" hidden>
-  <div class="pb-head">
-    <b>상황별 대처</b>
-    <button class="btn xs" onclick="togglePB()">닫기</button>
-  </div>
-  <input id="pbq" class="pb-search" placeholder="검색 (예: 기도폐쇄, 화상, 경련)" oninput="filterCards(this.value)"/>
-  <div id="pb-list" class="pb-list"></div>
-  <div id="pb-view" class="pb-view"></div>
-  <p class="pb-lic">ⓘ 출처·라이선스는 각 카드에 표기됩니다.</p>
-</aside>
-
-<main class="wrap">
-  <!-- 채팅 컬럼 -->
-  <section class="col chat glass">
-    <div id="chat" class="panel"></div>
-    <div class="row">
-      <input id="q" class="input" placeholder="증상을 입력하거나 마이크로 말씀하세요 (예: 가슴 통증, 오른쪽 아랫배 통증 등)"/>
-      <button class="btn send" onclick="send()">전송</button>
+  <header class="hdr">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM11 17H9V13H5V11H9V7H11V11H15V13H11V17Z" />
+      </svg>
+      ER-NOW 119
     </div>
-    <p class="notice">※ 본 서비스는 정보 제공용입니다. 즉시 위험 시 119를 누르세요.</p>
-  </section>
-
-  <!-- 사이드 컬럼 (오른쪽): 빠른 응급처치 요약 → 상단, 이미지 → 하단 -->
-  <aside class="col side">
-    <div class="card glass firstaid" aria-label="빠른 응급처치 요약">
-      <div class="card-head">
-        <svg class="ico ambu" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-          <path d="M3 16V7a1 1 0 0 1 1-1h6l3 3h7a1 1 0 0 1 1 1v6h-1a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H3zM8 10h2V8H8v2zm-1 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm12 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
-        </svg>
-        <b>빠른 응급처치 요약</b>
+    <div class="nav-center">
+      <button class="nav-btn active" onclick="closeOverlay()">💬 상담실</button>
+      <button class="nav-btn" onclick="openOverlay('phr')">📋 나의 차트</button>
+      <button class="nav-btn" onclick="openOverlay('hospital')">🏥 병원 찾기</button>
+    </div>
+    <div class="right-ctrl">
+      <div style="font-size:14px; color:#666;">
+        <label><input type="checkbox" id="ttsAuto" checked> 🔈음성안내</label>
       </div>
-      <ul class="bul">
-        <li><b>발작</b>: 옆으로 눕히고 위험물 치우기, 입에 아무것도 넣지 않기, <b>5분↑ 즉시 119</b>.</li>
-        <li><b>심근경색 의심</b>: 119, 처방 니트로 있으면 지시에 따라 복용, 무호흡·무의식이면 <b>CPR</b>.</li>
-        <li><b>뇌졸중 FAST</b>: 얼굴·팔·말 어눌 → <b>즉시 119</b>.</li>
-        <li><b>기도 막힘(성인)</b>: 기침 유도 → 효과 없으면 <b>복부 밀어내기</b>, 의식 잃으면 CPR.</li>
-        <li><b>대량출혈</b>: <b>지압/압박</b> 지속, 가능한 높이 올리기, 지혈대는 교육받은 경우만.</li>
-        <li><b>아나필락시스</b>: 에피펜 즉시 사용, 증상 재발 가능 → 119/응급실.</li>
-        <li><b>화상</b>: 열원 제거, <b>미지근한 물 20분</b> 냉각, 물집은 터뜨리지 않기.</li>
-      </ul>
+      <button class="btn-119" onclick="location.href='tel:119'">🚨 119 신고</button>
     </div>
+  </header>
 
-    <div class="ai-art glass">
-      <img src="/img/erimage.png"   alt="doctor"   class="art art1"/>
-    </div>
-  </aside>
-</main>
+  <main class="wrap">
+    <!-- 좌측: 플레이북 -->
+    <aside class="col side pb-panel">
+      <div class="pb-head">📚 응급 상황별 대처</div>
+      <input id="pbq" class="pb-search" placeholder="상황 검색 (예: 심정지, 화상)" oninput="filterCards(this.value)">
+      <div id="pb-list" class="pb-list"></div>
+    </aside>
 
-<!-- 플로팅 마이크 -->
-<button id="fabMic" class="fab" title="말하기 시작/종료" onclick="toggleSTT()">🎤</button>
-
-<script>
-const chat = document.getElementById('chat');
-const sid = localStorage.getItem('sid') || (localStorage.setItem('sid','sid-'+Math.random().toString(36).slice(2)), localStorage.getItem('sid'));
-let rec, recognizing=false;
-let typingBubble=null;
-
-// 유틸
-function addBubble(html, me=false){
-  const b=document.createElement('div');
-  b.className='bubble '+(me?'me':'bot');
-  b.innerHTML=html;
-  chat.appendChild(b); chat.scrollTop=chat.scrollHeight;
-  return b;
-}
-function showTyping(){
-  removeTyping();
-  const b=document.createElement('div');
-  b.className='bubble bot typing';
-  b.innerHTML='<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
-  typingBubble=b; chat.appendChild(b); chat.scrollTop=chat.scrollHeight;
-}
-function removeTyping(){ if(typingBubble){ typingBubble.remove(); typingBubble=null; } }
-
-// 119
-function tel119(){ location.href='tel:119'; }
-
-// 타이핑 효과
-function typeWriter(bubble, text, done){
-  const speed = 14; let i=0;
-  const timer=setInterval(()=>{
-    bubble.innerHTML += (text[i]==='\n')?'<br/>':(text[i]||'');
-    chat.scrollTop=chat.scrollHeight; i++;
-    if(i>=text.length){ clearInterval(timer); done&&done(); }
-  }, speed);
-}
-
-// 전송 (assist_prompt 옵션 지원)
-async function send(extra={}){
-  const input=document.getElementById('q');
-  const q=(extra.q ?? input.value).trim(); if(!q) return;
-  input.value='';
-
-  addBubble(q,true); showTyping();
-  const lang=document.getElementById('lang').value;
-
-  try{
-    const body = { q, lang, session_id:sid };
-    if(extra.assist_prompt){ body.assist_prompt = extra.assist_prompt; }
-
-    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)});
-    const j=await r.json();
-    removeTyping();
-
-    if(j.alerts?.length){ addBubble(`<b class="warn">[경고]</b> ${j.alerts.join(', ')}`); }
-
-    const b=addBubble('',false);
-    const text=(j.answer||'[응답 없음]').toString();
-    typeWriter(b,text,()=>{ if(document.getElementById('ttsAuto').checked){ speak(b.innerText); } });
-
-  }catch(e){
-    removeTyping(); addBubble('네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
-  }
-}
-
-// STT
-function toggleSTT(){
-  if(!('webkitSpeechRecognition' in window)){ alert('Chrome 권장(마이크 권한 필요)'); return; }
-  const btn=document.getElementById('btnSTT'); const fab=document.getElementById('fabMic');
-  if(!rec){
-    rec=new webkitSpeechRecognition(); rec.lang='ko-KR'; rec.interimResults=false; rec.continuous=false;
-    rec.onresult=e=>{ document.getElementById('q').value=e.results[0][0].transcript; send(); };
-    rec.onend=()=>{ recognizing=false; btn.innerText='🎙️ 말하기'; fab.classList.remove('on'); };
-  }
-  if(!recognizing){ recognizing=true; btn.innerText='⏹️ 종료'; fab.classList.add('on'); rec.start(); }
-  else{ recognizing=false; btn.innerText='🎙️ 말하기'; fab.classList.remove('on'); rec.stop(); }
-}
-
-// TTS
-function speak(text){
-  if(!('speechSynthesis' in window)) return;
-  const u=new SpeechSynthesisUtterance(text);
-  const lang=document.getElementById('lang').value;
-  u.lang=(lang==='ko')?'ko-KR':(lang==='en')?'en-US':(lang==='zh')?'zh-CN':'ja-JP';
-  u.rate=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u);
-}
-
-// Enter 전송
-document.getElementById('q').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ e.preventDefault(); send(); }
-});
-
-// ──────────────────────────────
-// 플레이북(상황별 대처) 로직
-// ──────────────────────────────
-let SCENARIOS = [];
-function togglePB(){
-  const el=document.getElementById('playbook');
-  if(el.hasAttribute('hidden')){ el.removeAttribute('hidden'); loadScenarios(); }
-  else{ el.setAttribute('hidden',''); }
-}
-async function loadScenarios(){
-  if(SCENARIOS.length) return; // 최초 1회만
-  const res = await fetch('/api/scenarios'); const j = await res.json();
-  SCENARIOS = j.cards || []; renderCards(SCENARIOS);
-}
-function renderCards(arr){
-  const box=document.getElementById('pb-list'); box.innerHTML="";
-  arr.forEach(c=>{
-    const btn=document.createElement('button');
-    btn.className='pb-card';
-    btn.innerHTML = `<b>${c.title}</b><div class="mini">${(c.dept||[]).join('/')}</div>`;
-    btn.onclick = ()=> openCard(c.id);
-    box.appendChild(btn);
-  });
-}
-function filterCards(q){
-  q=(q||"").toLowerCase();
-  const f=SCENARIOS.filter(c => c.title?.toLowerCase().includes(q));
-  renderCards(f);
-}
-async function openCard(id){
-  const res = await fetch(`/api/scenario/${id}`); const j = await res.json();
-  if(!j.ok){ alert('카드를 불러오지 못했습니다.'); return; }
-  const c=j.card; const view=document.getElementById('pb-view');
-  view.innerHTML = `
-    <div class="pb-card view">
-      <div class="ttl">${c.title}</div>
-      <ol class="steps">${(c.steps||[]).slice(0,10).map(s=>`<li>${s}</li>`).join("")}</ol>
-      <div class="lic">출처: ${c.source||""} · ${c.license||""}</div>
-      <div class="row">
-        <button class="btn xs" onclick="speak('${(c.title+" "+(c.steps||[]).slice(0,6).join('. ')).replace(/'/g,'\\\'')}')">🔈 읽어주기</button>
-        <button class="btn xs primary" onclick="askWith('${encodeURIComponent(j.prompt)}')">이걸로 상담</button>
+    <!-- 중앙: 채팅 -->
+    <section class="main">
+      <div id="chat" class="chat-area">
+        <div class="bubble bot">
+          안녕하세요! <b>119 응급처치 도우미</b>입니다.<br>
+          어디가 불편하신가요? 증상을 말씀해 주시거나 왼쪽에서 상황을 선택해 주세요.
+        </div>
       </div>
-    </div>`;
-}
-function askWith(promptEncoded){
-  const prompt = decodeURIComponent(promptEncoded);
-  const input=document.getElementById('q');
-  if(!input.value.trim()) input.value = "[상황 선택] "+(prompt.split('\n')[0]||'');
-  send({ q: input.value, assist_prompt: prompt });
-}
-</script>
+      <div class="input-area">
+        <input id="q" class="input-box" placeholder="증상을 입력하세요 (예: 가슴이 조이듯 아파요)">
+        <button class="btn-send" onclick="send()">전송</button>
+      </div>
+    </section>
 
-<!-- 플레이북 전용 최소 CSS (기존 styles.css에 영향 최소화) -->
-<style>
-  .pb { position: fixed; left: 12px; top: 78px; width: 320px; max-height: calc(100vh - 100px);
-        overflow: auto; border-radius: 14px; padding: 12px; z-index: 20; }
-  .pb-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .pb-search { width:100%; padding:10px 12px; border:2px solid #22c09a77; border-radius:12px; font-size:15px; }
-  .pb-list { margin-top:8px; }
-  .pb-card { display:block; width:100%; text-align:left; padding:10px 12px; margin:6px 0;
-             border:2px solid #22c09a; background:#e9fff7; border-radius:12px; font-weight:700; }
-  .pb-card.view { background:#fff; border-style:dashed }
-  .pb-card .mini { font-size:12px; color:#088178; font-weight:500; }
-  .pb-view .ttl { font-weight:900; margin:10px 2px; color:#045d56; }
-  .pb-view .steps { margin:6px 2px 8px 18px; }
-  .pb-view .lic { font-size:11px; color:#666; margin:6px 2px; }
-  .btn.xs { padding:6px 10px; font-size:12px; border-radius:10px; }
-  .btn.primary { background:#22c09a; color:#fff; border-color:#22c09a; }
-</style>
+    <!-- 우측: 요약 -->
+    <aside class="col side">
+      <div class="summary-card">
+        <div class="summary-head">⚡ 빠른 응급처치 요약</div>
+        <ul class="summary-list">
+          <li><b>심정지</b>: 📢 "도와주세요!" 119 신고 → <b>가슴압박</b> (분당 100~120회)</li>
+          <li><b>기도폐쇄</b>: 기침 유도 → 등 두드리기 → <b>하임리히법</b></li>
+          <li><b>뇌졸중</b>: 🚑 <b>FAST</b> (얼굴 처짐, 팔 마비, 말 어눌) → 즉시 119</li>
+          <li><b>심근경색</b>: 💔 쥐어짜는 흉통, 식은땀 → <b>119 신고</b>, 편안한 자세</li>
+          <li><b>화상</b>: 🧊 흐르는 시원한 물에 <b>15~20분</b> 식히기 (얼음 X)</li>
+          <li><b>출혈</b>: 🩸 깨끗한 천/거즈로 상처 부위 <b>직접 압박</b></li>
+          <li><b>골절</b>: 🦴 움직이지 않게 <b>부목 고정</b>, 냉찜질</li>
+          <li><b>벌 쏘임</b>: 🐝 카드 등으로 침 제거, 냉찜질, 호흡곤란 시 119</li>
+          <li><b>열사병</b>: ☀️ 시원한 곳 이동, 옷 느슨하게, 물 뿌리기</li>
+          <li><b>영유아 고열</b>: 🌡️ 미온수 마사지, 해열제, 경련 시 119</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <!-- PHR 오버레이 -->
+  <div id="overlay-phr" class="overlay">
+    <div class="ov-container">
+      <div class="ov-head">
+        <div class="ov-title">📋 나의 건강기록 (My Chart)</div>
+        <button class="btn-close" onclick="closeOverlay()">닫기</button>
+      </div>
+
+      <div class="phr-grid">
+        <!-- 좌측: 프로필 및 입력 -->
+        <div class="col">
+          <div class="phr-section">
+            <label class="phr-label">기본 프로필</label>
+            <div class="form-row">
+              <input id="phr-name" class="form-input" placeholder="이름">
+              <input id="phr-birth" class="form-input" placeholder="생년월일 (YYYY-MM-DD)">
+            </div>
+            <div class="form-row">
+              <select id="phr-gender" class="form-input">
+                <option value="">성별</option>
+                <option value="M">남성</option>
+                <option value="F">여성</option>
+              </select>
+              <input id="phr-blood" class="form-input" placeholder="혈액형">
+            </div>
+            <button class="btn-sm btn-primary" style="width:100%" onclick="saveProfile()">프로필 저장</button>
+          </div>
+
+          <div class="phr-section">
+            <label class="phr-label">건강 수치 기록</label>
+            <div class="form-row">
+              <select id="metric-type" class="form-input">
+                <option value="혈압(수축기)">혈압(수축기)</option>
+                <option value="혈압(이완기)">혈압(이완기)</option>
+                <option value="공복혈당">공복혈당</option>
+                <option value="체중">체중</option>
+              </select>
+              <input id="metric-val" class="form-input" type="number" placeholder="수치">
+              <button class="btn-sm btn-primary" onclick="addMetric()">기록</button>
+            </div>
+            <div id="metric-list" style="max-height: 200px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <!-- 우측: 그래프 -->
+        <div class="col">
+          <div class="phr-section" style="height: 100%; min-height: 400px;">
+            <label class="phr-label">건강 추세 그래프</label>
+            <canvas id="phrChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="phr-grid" style="margin-top: 24px;">
+        <div class="phr-section">
+          <label class="phr-label">진료/수술 이력</label>
+          <div class="form-row">
+            <input id="hist-hosp" class="form-input" placeholder="병원명">
+            <input id="hist-dept" class="form-input" placeholder="진료과">
+          </div>
+          <div class="form-row">
+            <input id="hist-date" class="form-input" placeholder="날짜 (YYYY-MM-DD)">
+            <button class="btn-sm btn-primary" onclick="addHistory()">추가</button>
+          </div>
+          <div id="hist-list"></div>
+        </div>
+
+        <div class="phr-section">
+          <label class="phr-label">보험 정보</label>
+          <div class="form-row">
+            <input id="ins-name" class="form-input" placeholder="보험사/상품명">
+            <button class="btn-sm btn-primary" onclick="addInsurance()">추가</button>
+          </div>
+          <div id="ins-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 병원 찾기 오버레이 -->
+  <div id="overlay-hospital" class="overlay">
+    <div class="ov-container">
+      <div class="ov-head">
+        <div class="ov-title">🏥 내 주변 병원 찾기</div>
+        <button class="btn-close" onclick="closeOverlay()">닫기</button>
+      </div>
+
+      <div class="hosp-filter">
+        <button class="btn-sm btn-primary" onclick="getMyLocation()">📍 내 위치 중심 검색 (분당)</button>
+        <select id="hosp-dept" class="form-input" style="max-width: 200px;"
+          onchange="searchHospitals(currentLat, currentLng)">
+          <option value="">전체 진료과</option>
+          <option value="내과">내과</option>
+          <option value="외과">외과</option>
+          <option value="정형외과">정형외과</option>
+          <option value="성형외과">성형외과</option>
+          <option value="산부인과">산부인과</option>
+          <option value="소아청소년과">소아청소년과</option>
+          <option value="응급의학과">응급의학과</option>
+        </select>
+      </div>
+
+      <!-- 지도 영역 -->
+      <div id="map" class="map-container"></div>
+
+      <div id="hosp-status" style="margin-bottom: 10px; font-weight: 700; color: var(--primary);"></div>
+      <div id="hosp-result" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"></div>
+    </div>
+  </div>
+
+  <button id="fabMic" class="fab" onclick="toggleSTT()">🎤</button>
+  <button id="fabStop" class="fab" style="bottom: 100px; background: #757575;" onclick="stopTTS()">⏹️</button>
+
+  <script>
+    // --- PHR Logic ---
+    async function loadPHR() {
+      try {
+        const res = await fetch('/api/phr');
+        const data = await res.json();
+
+        // Profile
+        if (data.profile) {
+          document.getElementById('phr-name').value = data.profile.name || '';
+          document.getElementById('phr-birth').value = data.profile.birthdate || '';
+          document.getElementById('phr-gender').value = data.profile.gender || '';
+          document.getElementById('phr-blood').value = data.profile.blood_type || '';
+        }
+
+        // Metrics
+        const mList = document.getElementById('metric-list');
+        mList.innerHTML = '';
+        (data.metrics || []).forEach((m, i) => {
+          const d = document.createElement('div');
+          d.className = 'hosp-item';
+          d.style.padding = '8px';
+          d.innerHTML = `<b>${m.type}</b>: ${m.value} <span style="font-size:12px;color:#999">(${m.date})</span> <button class="btn-del" onclick="delPHR('metrics', ${i})">x</button>`;
+          mList.appendChild(d);
+        });
+
+        // Chart
+        renderChart(data.metrics || []);
+
+        // History
+        const hList = document.getElementById('hist-list');
+        hList.innerHTML = '';
+        (data.history || []).forEach((h, i) => {
+          const d = document.createElement('div');
+          d.className = 'hosp-item';
+          d.style.padding = '8px';
+          d.innerHTML = `<b>${h.hospital}</b> (${h.dept}) <br><span style="font-size:12px;color:#666">${h.date}</span> <button class="btn-del" onclick="delPHR('history', ${i})">x</button>`;
+          hList.appendChild(d);
+        });
+
+        // Insurance
+        const iList = document.getElementById('ins-list');
+        iList.innerHTML = '';
+        (data.insurance || []).forEach((ins, i) => {
+          const d = document.createElement('div');
+          d.className = 'hosp-item';
+          d.style.padding = '8px';
+          d.innerHTML = `<b>${ins.name}</b> <button class="btn-del" onclick="delPHR('insurance', ${i})">x</button>`;
+          iList.appendChild(d);
+        });
+      } catch (e) {
+        console.error("Failed to load PHR", e);
+      }
+    }
+
+    let phrChart;
+    function renderChart(metrics) {
+      const ctx = document.getElementById('phrChart').getContext('2d');
+      if (phrChart) phrChart.destroy();
+
+      // Group by type
+      const dataMap = {};
+      metrics.forEach(m => {
+        if (!dataMap[m.type]) dataMap[m.type] = [];
+        dataMap[m.type].push({ x: m.date, y: parseFloat(m.value) });
+      });
+
+      const datasets = Object.keys(dataMap).map((key, idx) => ({
+        label: key,
+        data: dataMap[key],
+        borderColor: ['#009688', '#e63946', '#f4a261', '#2a9d8f'][idx % 4],
+        fill: false,
+        tension: 0.1
+      }));
+
+      phrChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: metrics.map(m => m.date), datasets }, // Simplified labels for now
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { display: false } // Hide x axis labels if too many
+          }
+        }
+      });
+    }
+
+    async function saveProfile() {
+      const body = {
+        name: document.getElementById('phr-name').value,
+        birthdate: document.getElementById('phr-birth').value,
+        gender: document.getElementById('phr-gender').value,
+        blood_type: document.getElementById('phr-blood').value
+      };
+      await fetch('/api/phr/profile', { method: 'POST', body: JSON.stringify(body) });
+      alert('프로필이 저장되었습니다.');
+    }
+
+    async function addMetric() {
+      const type = document.getElementById('metric-type').value;
+      const value = document.getElementById('metric-val').value;
+      if (!value) return;
+      await fetch('/api/phr/metric', { method: 'POST', body: JSON.stringify({ type, value }) });
+      loadPHR();
+    }
+
+    async function addHistory() {
+      const hospital = document.getElementById('hist-hosp').value;
+      const dept = document.getElementById('hist-dept').value;
+      const date = document.getElementById('hist-date').value;
+      if (!hospital) return;
+      await fetch('/api/phr/history', { method: 'POST', body: JSON.stringify({ hospital, dept, date }) });
+      loadPHR();
+    }
+
+    async function addInsurance() {
+      const name = document.getElementById('ins-name').value;
+      if (!name) return;
+      await fetch('/api/phr/insurance', { method: 'POST', body: JSON.stringify({ name }) });
+      loadPHR();
+    }
+
+    async function delPHR(cat, idx) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await fetch(`/api/phr/${cat}/${idx}`, { method: 'DELETE' });
+      loadPHR();
+    }
+
+    // --- Hospital Search Logic ---
+    let map, markers = [];
+    let currentLat = 37.3518; // Default Bundang
+    let currentLng = 127.1236;
+
+    function initMap() {
+      if (map) return;
+      map = L.map('map').setView([currentLat, currentLng], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+
+    async function getMyLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          currentLat = pos.coords.latitude;
+          currentLng = pos.coords.longitude;
+          if (map) map.setView([currentLat, currentLng], 14);
+          searchHospitals(currentLat, currentLng);
+        }, () => {
+          alert('위치 정보를 가져올 수 없습니다. 기본 위치(분당)로 검색합니다.');
+          searchHospitals(currentLat, currentLng);
+        });
+      } else {
+        alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+      }
+    }
+
+    async function searchHospitals(lat, lng) {
+      const dept = document.getElementById('hosp-dept').value;
+      const res = await fetch(`/api/hospitals/nearby?lat=${lat}&lng=${lng}&dept=${dept}`);
+      const data = await res.json();
+
+      // Clear markers
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+
+      const list = document.getElementById('hosp-result');
+      list.innerHTML = '';
+      document.getElementById('hosp-status').innerText = `검색 결과: ${data.hospitals.length}건`;
+
+      data.hospitals.forEach(h => {
+        // Add marker
+        const m = L.marker([h.lat, h.lng]).addTo(map)
+          .bindPopup(`<b>${h.yadmNm}</b><br>${h.dept.join(', ')}`);
+        markers.push(m);
+
+        // Add list item
+        const d = document.createElement('div');
+        d.className = 'hosp-item';
+        d.innerHTML = `
+          <div class="hosp-name">${h.yadmNm}</div>
+          <div class="hosp-addr">${h.addr}</div>
+          <div style="font-size:12px; color:#009688; margin-top:4px;">${h.dept.join(', ')}</div>
+          <div style="font-size:13px; margin-top:4px;">📞 ${h.telno}</div>
+        `;
+        d.onclick = () => {
+          map.setView([h.lat, h.lng], 16);
+          m.openPopup();
+        };
+        list.appendChild(d);
+      });
+    }
+
+    // --- Overlay Logic ---
+    function openOverlay(id) {
+      document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+      document.getElementById('overlay-' + id).classList.add('open');
+      if (id === 'hospital') {
+        setTimeout(() => {
+          initMap();
+          map.invalidateSize();
+          searchHospitals(currentLat, currentLng);
+        }, 100);
+      } else if (id === 'phr') {
+        loadPHR();
+      }
+    }
+
+    function closeOverlay() {
+      document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+    }
+
+    // --- Chat & Playbook Logic ---
+    const chat = document.getElementById('chat');
+    const sid = localStorage.getItem('sid') || (localStorage.setItem('sid', 'sid-' + Math.random().toString(36).slice(2)), localStorage.getItem('sid'));
+    let rec, recognizing = false;
+
+    function addBubble(html, me = false) {
+      const b = document.createElement('div');
+      b.className = 'bubble ' + (me ? 'me' : 'bot');
+      b.innerHTML = html;
+      chat.appendChild(b); chat.scrollTop = chat.scrollHeight;
+      return b;
+    }
+
+    async function send(extra = {}) {
+      const input = document.getElementById('q');
+      const q = (extra.q ?? input.value).trim(); if (!q) return;
+      input.value = '';
+      addBubble(q, true);
+
+      // 타이핑 효과
+      const typing = addBubble('<span class="dot">...</span>', false);
+
+      try {
+        const body = { q, lang: 'ko', session_id: sid };
+        if (extra.assist_prompt) body.assist_prompt = extra.assist_prompt;
+
+        const r = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const j = await r.json();
+
+        typing.remove();
+        if (j.alerts?.length) addBubble(`<b class="warn">[경고]</b> ${j.alerts.join(', ')}`);
+
+        const b = addBubble('', false);
+        typeWriter(b, j.answer || '응답이 없습니다.', () => {
+          if (document.getElementById('ttsAuto').checked) speak(j.answer);
+        });
+      } catch (e) { typing.remove(); addBubble('오류가 발생했습니다.'); }
+    }
+
+    function typeWriter(el, text, done) {
+      let i = 0; el.innerHTML = "";
+      const timer = setInterval(() => {
+        el.innerHTML += (text[i] === '\n' ? '<br>' : text[i] || '');
+        chat.scrollTop = chat.scrollHeight; i++;
+        if (i >= text.length) { clearInterval(timer); done && done(); }
+      }, 10);
+    }
+
+    // STT/TTS
+    function toggleSTT() {
+      if (!('webkitSpeechRecognition' in window)) { alert('Chrome 브라우저를 사용해주세요.'); return; }
+      const fab = document.getElementById('fabMic');
+      if (!rec) {
+        rec = new webkitSpeechRecognition(); rec.lang = 'ko-KR';
+        rec.onresult = e => { document.getElementById('q').value = e.results[0][0].transcript; send(); };
+        rec.onend = () => { recognizing = false; fab.classList.remove('recording'); };
+      }
+      if (!recognizing) { recognizing = true; fab.classList.add('recording'); rec.start(); }
+      else { recognizing = false; fab.classList.remove('recording'); rec.stop(); }
+    }
+
+    function speak(text) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ko-KR'; speechSynthesis.speak(u);
+    }
+
+    function stopTTS() {
+      window.speechSynthesis.cancel();
+    }
+
+    // Playbook
+    let SCENARIOS = [];
+    async function loadScenarios() {
+      const res = await fetch('/api/scenarios'); const j = await res.json();
+      SCENARIOS = j.cards || []; renderCards(SCENARIOS);
+    }
+    function renderCards(arr) {
+      const box = document.getElementById('pb-list'); box.innerHTML = "";
+      arr.forEach(c => {
+        const d = document.createElement('div'); d.className = 'pb-card';
+        d.innerHTML = `<b>${c.title}</b><div class="mini">${(c.dept || []).join('/')}</div>`;
+        d.onclick = async () => {
+          const r = await fetch(`/api/scenario/${c.id}`); const j = await r.json();
+          send({ q: `[상황 선택] ${c.title}`, assist_prompt: j.prompt });
+        };
+        box.appendChild(d);
+      });
+    }
+    function filterCards(q) {
+      renderCards(SCENARIOS.filter(c => c.title.includes(q)));
+    }
+
+    // Init
+    loadScenarios();
+    document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') send() });
+  </script>
 </body>
+
 </html>
